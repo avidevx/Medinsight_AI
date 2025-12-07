@@ -441,15 +441,18 @@
         return;
       }
 
-      // Collect form data
+      // Collect form data with proper formatting
+      const dateValue = document.getElementById('date').value; // yyyy-mm-dd format from HTML5 input
+      const timeValue = document.getElementById('time').value; // HH:mm format from HTML5 input
+
       const formData = {
         fullName: document.getElementById('fullName').value,
         email: document.getElementById('email').value,
         phone: document.getElementById('phone').value,
         location: document.getElementById('location').value,
         appointmentType: document.getElementById('appointmentType').value,
-        date: document.getElementById('date').value,
-        time: document.getElementById('time').value
+        date: dateValue, // yyyy-mm-dd
+        time: timeValue  // HH:mm
       };
 
       // Disable submit button and show loading state
