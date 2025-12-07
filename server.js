@@ -789,7 +789,21 @@ app.post('/api/consult', async (req, res) => {
     if (!n8nResponse.ok) {
       const errorData = await n8nResponse.text();
       console.error('❌ n8n webhook error:', errorData);
-      return res.status(500).json({ error: 'Failed to schedule appointment with workflow service' });
+
+      // Parse error message to provide better feedback
+      let errorMessage = 'Failed to schedule appointment with workflow service';
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.message && errorJson.message.includes('not registered')) {
+          errorMessage = 'Workflow service is not active. Please activate the workflow in n8n and try again.';
+        } else if (errorJson.message) {
+          errorMessage = errorJson.message;
+        }
+      } catch (e) {
+        // Fallback to default message
+      }
+
+      return res.status(500).json({ error: errorMessage });
     }
 
     // Success response
