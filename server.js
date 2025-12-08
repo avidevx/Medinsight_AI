@@ -33,8 +33,8 @@ app.use(
         "style-src": ["'self'", "https:", "'unsafe-inline'"],
         // Allow media loaded from our origin and blob: URLs for audio playback
         "media-src": ["'self'", "blob:"],
-        // Allow API calls to Groq
-        "connect-src": ["'self'", "https://api.groq.com"],
+        // Allow API calls to Groq and n8n
+        "connect-src": ["'self'", "https://api.groq.com", "https://dev-marvania1.app.n8n.cloud"],
         // Optional: upgrade-insecure-requests is enabled by defaults
       }
     },
@@ -743,6 +743,84 @@ IMPORTANT: Be thorough and specific. Include actual numbers, measurements, and v
 // Reset endpoint to help client clear any server-side state (stateless here but allows future extensibility)
 app.post('/reset', (req, res) => {
   res.json({ ok: true });
+});
+
+// Consult a Doctor endpoint - forwards to n8n webhook
+app.post('/api/consult', async (req, res) => {
+  try {
+    console.log('📋 Consult request received:', req.body);
+
+    const { fullName, email, phone, location, appointmentType, date, time } = req.body;
+
+    // Validate required fields
+    if (!fullName || !email || !phone || !location || !appointmentType || !date || !time) {
+      console.error('Missing required fields:', { fullName, email, phone, location, appointmentType, date, time });
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Prepare payload for n8n webhook
+    const n8nPayload = {
+      body: {
+        fullName,
+        email,
+        phone,
+        location,
+        appointmentType,
+        date,
+        time
+      }
+    };
+
+    // Forward to n8n webhook
+    const n8nUrl = 'https://dev-marvania1.app.n8n.cloud/webhook-test/2be0d61e-a2a0-48de-867e-4892849296b4';
+
+    console.log('🔄 Forwarding to n8n webhook:', n8nUrl);
+
+    const n8nResponse = await fetch(n8nUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(n8nPayload)
+    });
+
+    console.log('✅ n8n response status:', n8nResponse.status);
+
+    if (!n8nResponse.ok) {
+      const errorData = await n8nResponse.text();
+      console.error('❌ n8n webhook error:', errorData);
+
+      // Parse error message to provide better feedback
+      let errorMessage = 'Failed to schedule appointment with workflow service';
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.message && errorJson.message.includes('not registered')) {
+          errorMessage = 'Workflow service is not active. Please activate the workflow in n8n and try again.';
+        } else if (errorJson.message) {
+          errorMessage = errorJson.message;
+        }
+      } catch (e) {
+        // Fallback to default message
+      }
+
+      return res.status(500).json({ error: errorMessage });
+    }
+
+    // Success response
+    res.set('Content-Type', 'application/json');
+    res.json({
+      success: true,
+      message: 'Appointment scheduled successfully',
+      data: n8nPayload
+    });
+
+    console.log('✅ Appointment scheduled successfully');
+
+  } catch (error) {
+    console.error('❌ Error in /api/consult:', error);
+    res.set('Content-Type', 'application/json');
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
+  }
 });
 
 // Serve static frontend
