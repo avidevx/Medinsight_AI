@@ -40,7 +40,7 @@ app.use(
         // Allow media loaded from our origin and blob: URLs for audio playback
         "media-src": ["'self'", "blob:"],
         // Allow API calls to Groq, n8n, and Google Translate
-        "connect-src": ["'self'", "https://api.groq.com", "https://dev-marvania1.app.n8n.cloud", "https://translation.googleapis.com","https://generativelanguage.googleapis.com"],
+        "connect-src": ["'self'", "https://api.groq.com", "https://dev-marvania1.app.n8n.cloud", "https://generativelanguage.googleapis.com"],
         // Optional: upgrade-insecure-requests is enabled by defaults
       }
     },
@@ -62,126 +62,69 @@ app.use((req, res, next) => {
 });
 
 // Groq configuration (kept for TTS only)
-const API_KEY = process.env.GROQ_API_KEY || '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';
+const API_KEY = process.env.GROQ_API_KEY;
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
-// Google Gemini configuration (used for image analysis + OCR)
-import { GoogleGenerativeAI } from '@google/generative-ai';
-const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GOOGLE_GEMINI_MODEL || 'gemini-2.5-flash'; // Multimodal model
+// Groq Vision configuration
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'llama-3.2-90b-vision-preview';
 
-// Masked logging to verify keys are loaded without exposing secrets
-function maskKey(k) {
-  if (!k) return '(missing)';
-  const s = String(k);
-  return s.slice(0, 2) + '…' + s.slice(-4) + ` (${s.length} chars)`;
-}
-console.log(`[PID ${process.pid}] 🔐 Config: Gemini key:`, maskKey(GEMINI_API_KEY));
-console.log(`[PID ${process.pid}] 🔐 GOOGLE_API_KEY:`, maskKey(process.env.GOOGLE_API_KEY));
-console.log(`[PID ${process.pid}] 🔐 GEMINI_API_KEY:`, maskKey(process.env.GEMINI_API_KEY));
-console.log(`[PID ${process.pid}] 🔧 CWD:`, process.cwd());
+// Helper function to call Groq Vision API
+async function callGroqVision(promptText, imageBase64, mimeType) {
+  if (!API_KEY) throw new Error('Groq API Key not configured');
 
-if (!GEMINI_API_KEY) {
-  console.error('ERROR: GOOGLE_API_KEY (or GEMINI_API_KEY) is not set. Please set it in .env');
-  // Do not exit: allow server to start for TTS/other routes, but /analyze will error without key
-}
+  // Ensure base64 has data URI prefix for Groq (if not present)
+  // But actually Groq API with OpenAI compatibility usually wants standard data URI
+  const hasPrefix = imageBase64.startsWith('data:');
+  const dataUrl = hasPrefix ? imageBase64 : `data:${mimeType};base64,${imageBase64}`;
 
-const geminiClient = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
-
-// Supabase configuration
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log('✅ Supabase connected successfully');
-} else {
-  console.warn('⚠️  Supabase credentials not found. Database features disabled.');
-}
-
-// Groq TTS configuration (using the same API key as chat)
-// PlayAI voices: Jennifer, Mason, Ruby, Angelo, Atlas, Celeste, and more
-// See: https://console.groq.com/docs/speech-text
-const GROQ_TTS_VOICE = process.env.GROQ_TTS_VOICE || 'Jennifer-PlayAI';
-const GROQ_TTS_MODEL = process.env.GROQ_TTS_MODEL || 'playai-tts';
-
-console.log(`✅ Groq TTS configured with voice: ${GROQ_TTS_VOICE}, model: ${GROQ_TTS_MODEL}`);
-
-// Helper functions to call Google Gemini for image analysis and OCR
-async function callGeminiVision(promptText, imageBase64, mimeType) {
-  if (!geminiClient) throw new Error('Google Gemini not configured');
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
-  const dataStripped = imageBase64.replace(/^data:[^;]+;base64,/, '');
-  const result = await model.generateContent({
-    contents: [
+  const payload = {
+    model: GROQ_VISION_MODEL,
+    messages: [
       {
         role: 'user',
-        parts: [
-          { text: promptText },
-          { inlineData: { data: dataStripped, mimeType } }
+        content: [
+          { type: 'text', text: promptText },
+          {
+            type: 'image_url',
+            image_url: {
+              url: dataUrl
+            }
+          }
         ]
       }
-    ]
+    ],
+    temperature: 0.1,
+    max_tokens: 4096
+  };
+
+  const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
   });
-  return result.response.text();
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq Vision API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
-async function callGeminiText(promptText) {
-  if (!geminiClient) throw new Error('Google Gemini not configured');
-  const model = geminiClient.getGenerativeModel({ model: GEMINI_MODEL });
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: promptText }]
-      }
-    ]
-  });
-  return result.response.text();
+// Helper function to call Groq Text-only API (replaces callGeminiText)
+async function callGroqText(promptText) {
+  if (!API_KEY) throw new Error('Groq API Key not configured');
+  return callGroqAPI([
+    { role: 'user', content: promptText }
+  ]);
 }
 
 // Legacy: Helper function to call Groq API (no longer used for analysis, kept for potential fallback) 
-// Google Translate API configuration
-const GOOGLE_TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY;
-const GOOGLE_TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2';
 
-if (!GOOGLE_TRANSLATE_API_KEY) {
-  console.warn('⚠️  Google Translate API key not found. Translation features disabled.');
-}
-
-// Helper function to translate text using Google Translate API
-async function translateText(text, targetLanguage) {
-  if (!GOOGLE_TRANSLATE_API_KEY) {
-    throw new Error('Google Translate API key not configured');
-  }
-
-  try {
-    const response = await fetch(`${GOOGLE_TRANSLATE_URL}?key=${GOOGLE_TRANSLATE_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        q: text,
-        target: targetLanguage,
-        source: 'en'
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Google Translate API error:', errorData);
-      throw new Error(`Translation API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.data.translations[0].translatedText;
-  } catch (error) {
-    console.error('Translation error:', error.message);
-    throw error;
-  }
-}
 
 // Helper function to call Groq API
 async function callGroqAPI(messages, options = {}) {
@@ -526,7 +469,7 @@ app.post('/analyze', async (req, res) => {
       const ocrPrompt = `Extract all legible text from the supplied image as plain text (preserve important numbers/units like mg/dL, mmHg). Output strict JSON only:\n{\n  "has_text": boolean,\n  "ocr_text": string\n}`;
 
       try {
-        const text = await callGeminiVision(ocrPrompt, imageBase64, mimeType);
+        const text = await callGroqVision(ocrPrompt, imageBase64, mimeType);
 
         try {
           const parsed = JSON.parse(text);
@@ -616,12 +559,12 @@ IMPORTANT: Be thorough and specific. Include actual numbers, measurements, and v
         textContent += `\n\nUser-stated modality hint: ${modality}`;
       }
 
-      return await callGeminiVision(textContent, imageBase64, mimeType);
+      return await callGroqVision(textContent, imageBase64, mimeType);
     }
 
     // Decide model and whether to run OCR based on user-selected modality
     const wantsOCR = modality === 'blood_test' || modality === 'prescription';
-    const modelForThis = GEMINI_MODEL;
+    const modelForThis = GROQ_VISION_MODEL;
     let ocr = { has_text: false, ocr_text: '' };
 
     if (wantsOCR) {
@@ -656,6 +599,7 @@ IMPORTANT: Be thorough and specific. Include actual numbers, measurements, and v
           console.log('Successfully parsed JSON from extracted block');
         } catch (innerError) {
           console.error('Failed to parse extracted JSON block:', {
+
             error: innerError.message,
             blockPreview: block.substring(0, 200) + (block.length > 200 ? '...' : '')
           });
@@ -883,59 +827,7 @@ app.post('/api/consult', async (req, res) => {
   }
 });
 
-// Translation endpoint - translates text to specified language
-app.post('/api/translate', async (req, res) => {
-  try {
-    console.log('📝 Translation request received');
 
-    const { text, targetLanguage } = req.body;
-
-    // Validate input
-    if (!text || typeof text !== 'string') {
-      console.error('Missing or invalid text parameter');
-      return res.status(400).json({ error: 'Text is required' });
-    }
-
-    if (!targetLanguage || typeof targetLanguage !== 'string') {
-      console.error('Missing or invalid targetLanguage parameter');
-      return res.status(400).json({ error: 'Target language is required' });
-    }
-
-    // Validate target language
-    const validLanguages = ['hi', 'kn', 'en'];
-    if (!validLanguages.includes(targetLanguage)) {
-      return res.status(400).json({ error: 'Unsupported language. Supported: en, hi, kn' });
-    }
-
-    // If target is English, return original text
-    if (targetLanguage === 'en') {
-      return res.json({ translatedText: text });
-    }
-
-    console.log(`🌐 Translating to ${targetLanguage}...`);
-
-    // Call Google Translate API
-    const translatedText = await translateText(text, targetLanguage);
-
-    console.log(`✅ Translation completed for ${targetLanguage}`);
-
-    res.json({
-      originalText: text,
-      translatedText: translatedText,
-      targetLanguage: targetLanguage
-    });
-
-  } catch (error) {
-    console.error('❌ Translation error:', error);
-
-    let errorMessage = 'Translation service error';
-    if (error.message.includes('not configured')) {
-      errorMessage = 'Translation service not configured';
-    }
-
-    res.status(500).json({ error: errorMessage, details: error.message });
-  }
-});
 
 // Serve static frontend
 app.use(express.static(path.join(__dirname, 'public')));
