@@ -10,11 +10,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // In local/dev we want .env to override any existing shell env so rotations apply immediately.
 // In production, we typically let the host env win. Adjust as needed.
+
 if (process.env.NODE_ENV === 'production') {
   dotenv.config();
 } else {
   dotenv.config({ override: true });
 }
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
