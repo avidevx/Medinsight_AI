@@ -66,7 +66,7 @@ const API_KEY = process.env.GROQ_API_KEY;
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 // Groq Vision configuration
-const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'llama-3.2-90b-vision-preview';
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 // Helper function to call Groq Vision API
 async function callGroqVision(promptText, imageBase64, mimeType) {

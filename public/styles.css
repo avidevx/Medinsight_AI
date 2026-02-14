@@ -338,10 +338,10 @@ body {
   transition: all 0.3s ease;
 }
 
-.feature-item:hover {
+/* .feature-item:hover {
   background: rgba(14, 165, 233, 0.15);
   transform: translateY(-2px);
-}
+} */
 
 .feature-item svg {
   color: #0ea5e9;
@@ -542,15 +542,15 @@ body {
   transition: transform 0.4s ease;
 }
 
-.feature-card:hover {
+/* .feature-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 20px 60px rgba(14, 165, 233, 0.15);
   border-color: rgba(14, 165, 233, 0.3);
-}
+} */
 
-.feature-card:hover::before {
+/* .feature-card:hover::before {
   transform: scaleX(1);
-}
+} */
 
 .feature-card[data-aos="fade-up"] {
   animation: featuresFadeUp 0.8s ease-out forwards;
@@ -593,9 +593,9 @@ body {
   transition: opacity 0.4s ease;
 }
 
-.feature-card:hover .feature-icon-bg {
+/* .feature-card:hover .feature-icon-bg {
   opacity: 0.1;
-}
+} */
 
 .feature-icon {
   color: #0ea5e9;
@@ -604,10 +604,10 @@ body {
   transition: all 0.4s ease;
 }
 
-.feature-card:hover .feature-icon {
+/* .feature-card:hover .feature-icon {
   transform: scale(1.1) rotate(5deg);
   color: #0891b2;
-}
+} */
 
 .feature-card-title {
   font-family: 'Space Grotesk', sans-serif;
@@ -1933,6 +1933,12 @@ body {
   transform: translateX(4px);
 }
 
+.features-column .footer-link:hover {
+  color: #64748b;
+  transform: none;
+  cursor: default;
+}
+
 .footer-bottom {
   display: flex;
   justify-content: space-between;
@@ -2302,9 +2308,73 @@ body {
   transition: color 0.2s ease;
 }
 
-.footer-email a:hover {
-  color: #0284c7;
-  text-decoration: underline;
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: #0f172a;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast::before {
+  content: '🚧';
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .toast {
+    bottom: 24px;
+    width: 90%;
+    justify-content: center;
+  }
+
+  .toast.visible {
+    transform: translateX(0) translateY(0);
+    /* Adjusted for centering */
+  }
+}
+
+/* Highlight Animation for Contact Section */
+@keyframes highlight-pulse {
+  0% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+  }
+
+  30% {
+    background-color: rgba(14, 165, 233, 0.1);
+    box-shadow: 0 0 0 10px rgba(14, 165, 233, 0.1);
+    border-radius: 8px;
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+  }
+}
+
+.highlight-active {
+  animation: highlight-pulse 2s ease-out;
 }
 
 @media (max-width: 768px) {

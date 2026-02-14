@@ -1,6 +1,6 @@
 # MedInsight - Medical Image Analyzer
 
-Analyze X-rays, blood test reports, and prescriptions using Google Gemini for image understanding and OCR, with text-to-speech powered by Groq's PlayAI TTS.
+Analyze X-rays, blood test reports, and prescriptions using Groq Llama 4 Vision for image understanding and OCR, with text-to-speech powered by Groq's PlayAI TTS.
 
 ## Quick start
 
@@ -14,8 +14,7 @@ npm install
 3. Set your API key:
 
 - Create a `.env` file
-- Set `GOOGLE_API_KEY` to your Google Gemini API key (https://aistudio.google.com/). Ensure your key has access to Gemini 2.5 Flash multimodal.
-- Set `GROQ_API_KEY` for TTS if you are using Groq PlayAI TTS (https://console.groq.com/).
+- Set `GROQ_API_KEY` to your Groq API key (https://console.groq.com/). Ensure your key has access to Llama 4 (Scout/Maverick) models.
 - Optionally configure TTS settings (voice, model)
 - Optionally set Supabase credentials for database features
 
@@ -34,7 +33,7 @@ Then open http://localhost:3000 in your browser.
 
 ## Features
 
-- **Medical Image Analysis**: Analyze X-rays, blood test reports, and prescriptions using Google Gemini (2.5 Flash) multimodal model
+- **Medical Image Analysis**: Analyze X-rays, blood test reports, and prescriptions using Groq Llama 4 Vision (Scout-17B) multimodal model
 - **OCR Integration**: Automatic text extraction from blood tests and prescriptions for detailed analysis
 - **Text-to-Speech**: Listen to analysis results using Groq's PlayAI TTS with multiple voice options
 - **Database Integration**: Optional Supabase integration for storing analysis history and statistics
@@ -44,7 +43,7 @@ Then open http://localhost:3000 in your browser.
 ## How it works
 
 - Frontend: drag-and-drop image upload, required modality selection (X-ray, Blood Test, Prescription), and color-coded results (green/yellow/red). Displays an OCR excerpt for Blood Test/Prescription.
-- Backend: Express server with `/analyze` endpoint using Google Gemini (Gemini 2.5 Flash) multimodal model. For X-ray: image analysis only. For Blood Test/Prescription: OCR + image analysis for comprehensive results.
+- Backend: Express server with `/analyze` endpoint using Groq Llama 4 Vision. For X-ray: image analysis only. For Blood Test/Prescription: OCR + image analysis for comprehensive results.
 - Text-to-Speech: `/text-to-speech` endpoint using Groq's PlayAI TTS API (requires terms acceptance in Groq console)
 - No caching: both client and server disable caching. The Reset button clears client state.
 
@@ -54,8 +53,6 @@ Then open http://localhost:3000 in your browser.
 
 ```bash
 # Required
-GOOGLE_API_KEY=your_google_api_key_here
-# For TTS
 GROQ_API_KEY=your_groq_api_key_here
 
 # Optional TTS Configuration
@@ -94,11 +91,23 @@ And many more! See https://console.groq.com/docs/speech-text for full list.
 
 - Update the analysis prompt in `server.js` to modify output fields and behavior.
 - Tweak severity rules or UI colors in `public/styles.css`.
-- Change the AI model via `GOOGLE_GEMINI_MODEL` in `.env` (default: gemini-2.5-flash).
+- Change the AI model via `GROQ_VISION_MODEL` in `.env` (default: meta-llama/llama-4-scout-17b-16e-instruct).
 
 ## Disclaimer
 
 This tool is for informational purposes only and does not provide medical diagnosis. Always consult qualified healthcare professionals for medical advice.
+
+## Recent Updates (2026-02-14)
+
+### Major Architecture Changes
+- **Model Upgrade**: Migrated from Google Gemini/Llama 3.2 to **Groq Llama 4 Vision (Scout-17B)** for superior medical image analysis and OCR.
+- **Translation Removal**: deprecated translation services to focus on core analysis speed and accuracy.
+
+### Frontend Enhancements
+- **Modernized UI**: Updated copyright year to 2026.
+- **Clean Interactions**: Removed distracting hover effects from Feature Cards and Hero items.
+- **Refined Navigation**: Targeted hover effect removal for "Features" footer links while preserving interactive cues for "Resources" and "Support".
+- **Interaction Feedback**: Implemented "Coming Soon" toast notifications for placeholder links.
 
 ## Recent Updates (2025-12-08)
 
