@@ -1,3 +1,5 @@
+Note: The live deployment of this project is currently offline. You can still view the codebase and run the application locally by following the Installation Instructions below.
+
 # MedInsight - Medical Image Analyzer
 
 Analyze X-rays, blood test reports, and prescriptions using Groq Llama 4 Vision for image understanding and OCR, with text-to-speech powered by Groq's PlayAI TTS.
